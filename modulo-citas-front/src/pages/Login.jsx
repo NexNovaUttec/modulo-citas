@@ -21,7 +21,17 @@ export default function Login() {
         
         try {
             await login(form.email, form.password);
-            navigate("/");
+            
+            // Decodificar el token para obtener el rol
+            const token = localStorage.getItem("token");
+            const decoded = JSON.parse(atob(token.split(".")[1]));
+            
+            // Redirigir según el rol
+            if (decoded.rol === 1) {
+                navigate("/admin"); // Administrador
+            } else {
+                navigate("/"); // Cliente
+            }
         } catch (err) {
             setError("Credenciales inválidas. Por favor intenta de nuevo.");
         } finally {
