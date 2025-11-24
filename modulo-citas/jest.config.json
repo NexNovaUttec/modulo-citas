@@ -1,0 +1,15 @@
+{
+  "testEnvironment": "node",
+  "moduleFileExtensions": ["js"],
+  "testMatch": ["**/__tests__/**/*.test.js"],
+  "verbose": true,
+  "clearMocks": true,
+  "resetMocks": true,
+  "restoreMocks": true,
+  "collectCoverage": true,
+  "coverageDirectory": "coverage",
+  "coverageProvider": "v8",
+  "transform": {
+    "^.+\\.js$": "babel-jest"
+  }
+}

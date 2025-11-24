@@ -1,0 +1,186 @@
+import request from 'supertest';
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import { testPool, cleanDb, closePool } from '../config/test-db.js';
+import * as citasController from '../controllers/citas.controller.js';
+import { authMiddleware } from '../middlewares/auth.js';
+
+const app = express();
+app.use(express.json());
+
+// Mock auth middleware for testing
+app.use((req, res, next) => {
+    req.user = { id: 1, rol: 3 }; // Mock authenticated user
+    next();
+});
+
+// Mount routes
+app.get('/api/citas', citasController.misCitas);
+app.post('/api/citas', citasController.crearCita);
+app.get('/api/citas/todas', citasController.todasCitas);
+
+describe('Citas Controller', () => {
+    beforeAll(async () => {
+        process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+        
+        // Create test user and vehicle
+        await testPool.query(`
+            INSERT INTO usuarios (id, nombre, email, password, telefono, rol_id)
+            VALUES (1, 'Test User', 'test@example.com', 'hashedpass', '1234567890', 3)
+        `);
+        
+        await testPool.query(`
+            INSERT INTO vehiculos (id, marca, modelo, anio, placa, usuario_id)
+            VALUES (1, 'Toyota', 'Corolla', 2020, 'ABC123', 1)
+        `);
+    });
+
+    beforeEach(async () => {
+        await testPool.query('TRUNCATE TABLE citas CASCADE');
+    });
+
+    afterAll(async () => {
+        await cleanDb();
+        await closePool();
+    });
+
+    describe('POST /api/citas', () => {
+        it('should create a new appointment', async () => {
+            const newCita = {
+                fecha: '2025-12-01',
+                hora: '10:00',
+                vehiculo_id: 1,
+                servicio_id: 1,
+                notas: 'Test appointment'
+            };
+
+            const response = await request(app)
+                .post('/api/citas')
+                .send(newCita);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toHaveProperty('id');
+            expect(response.body.vehiculo_id).toBe(newCita.vehiculo_id);
+        });
+
+        it('should not create appointment with invalid date', async () => {
+            const invalidCita = {
+                fecha: 'invalid-date',
+                hora: '10:00',
+                vehiculo_id: 1,
+                servicio_id: 1
+            };
+
+            const response = await request(app)
+                .post('/api/citas')
+                .send(invalidCita);
+
+            expect(response.status).toBe(500);
+        });
+    });
+
+    describe('GET /api/citas', () => {
+        beforeEach(async () => {
+            // Insert test appointment
+            await testPool.query(
+                'INSERT INTO citas (fecha, hora, vehiculo_id, servicio_id, usuario_id, notas) VALUES ($1, $2, $3, $4, $5, $6)',
+                ['2025-12-01', '10:00', 1, 1, 1, 'Test appointment']
+            );
+        });
+
+        it('should return all appointments for user', async () => {
+            const response = await request(app)
+                .get('/api/citas');
+
+            expect(response.status).toBe(200);
+            expect(Array.isArray(response.body)).toBe(true);
+            expect(response.body.length).toBeGreaterThan(0);
+        });
+    });
+
+    describe('GET /api/citas/:id', () => {
+        let testCitaId;
+
+        beforeEach(async () => {
+            // Insert test appointment and get its ID
+            const result = await testPool.query(`
+                INSERT INTO citas (fecha, hora, vehiculo_id, servicio_id, usuario_id, notas)
+                VALUES ('2025-12-01', '10:00', 1, 1, 1, 'Test appointment')
+                RETURNING id
+            `);
+            testCitaId = result.rows[0].id;
+        });
+
+        it('should return a specific appointment', async () => {
+            const response = await request(app)
+                .get('/api/citas/' + testCitaId);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toHaveProperty('id', testCitaId);
+        });
+
+        it('should return 404 for non-existent appointment', async () => {
+            const response = await request(app)
+                .get('/api/citas/999999');
+
+            expect(response.status).toBe(404);
+        });
+    });
+
+    describe('PUT /api/citas/:id', () => {
+        let testCitaId;
+
+        beforeEach(async () => {
+            const result = await testPool.query(`
+                INSERT INTO citas (fecha, hora, vehiculo_id, servicio_id, usuario_id, notas)
+                VALUES ('2025-12-01', '10:00', 1, 1, 1, 'Test appointment')
+                RETURNING id
+            `);
+            testCitaId = result.rows[0].id;
+        });
+
+        it('should update an appointment', async () => {
+            const updateData = {
+                fecha: '2025-12-02',
+                hora: '11:00',
+                notas: 'Updated appointment'
+            };
+
+            const response = await request(app)
+                .put('/api/citas/' + testCitaId)
+                .send(updateData);
+
+            expect(response.status).toBe(200);
+            
+            // Verify the update
+            const updated = await testPool.query('SELECT * FROM citas WHERE id = $1', [testCitaId]);
+            expect(updated.rows[0].fecha.toISOString()).toContain(updateData.fecha);
+            expect(updated.rows[0].hora).toBe(updateData.hora);
+            expect(updated.rows[0].notas).toBe(updateData.notas);
+        });
+    });
+
+    describe('DELETE /api/citas/:id', () => {
+        let testCitaId;
+
+        beforeEach(async () => {
+            const result = await testPool.query(`
+                INSERT INTO citas (fecha, hora, vehiculo_id, servicio_id, usuario_id, notas)
+                VALUES ('2025-12-01', '10:00', 1, 1, 1, 'Test appointment')
+                RETURNING id
+            `);
+            testCitaId = result.rows[0].id;
+        });
+
+        it('should delete an appointment', async () => {
+            const response = await request(app)
+                .delete('/api/citas/' + testCitaId);
+
+            expect(response.status).toBe(200);
+
+            // Verify the deletion
+            const result = await testPool.query('SELECT * FROM citas WHERE id = $1', [testCitaId]);
+            expect(result.rows).toHaveLength(0);
+        });
+    });
+});
