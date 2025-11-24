@@ -15,40 +15,43 @@ export default function App() {
     return (
         <AuthProvider>
             <BrowserRouter>
-                <Navbar />
+                <div className="min-h-screen bg-gray-50">
+                    <Navbar />
+                    <main className="pb-12">
+                        <Routes>
+                            <Route path="/" element={<Home />} />
+                            <Route path="/login" element={<Login />} />
+                            <Route path="/register" element={<Register />} />
 
-                <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
+                            <Route
+                                path="/citas"
+                                element={
+                                    <ProtectedRoute>
+                                        <MisCitas />
+                                    </ProtectedRoute>
+                                }
+                            />
 
-                    <Route
-                        path="/citas"
-                        element={
-                            <ProtectedRoute>
-                                <MisCitas />
-                            </ProtectedRoute>
-                        }
-                    />
+                            <Route
+                                path="/crear-cita"
+                                element={
+                                    <ProtectedRoute>
+                                        <CrearCita />
+                                    </ProtectedRoute>
+                                }
+                            />
 
-                    <Route
-                        path="/crear-cita"
-                        element={
-                            <ProtectedRoute>
-                                <CrearCita />
-                            </ProtectedRoute>
-                        }
-                    />
-
-                    <Route
-                        path="/admin"
-                        element={
-                            <ProtectedRoute>
-                                <AdminCitas />
-                            </ProtectedRoute>
-                        }
-                    />
-                </Routes>
+                            <Route
+                                path="/admin"
+                                element={
+                                    <ProtectedRoute>
+                                        <AdminCitas />
+                                    </ProtectedRoute>
+                                }
+                            />
+                        </Routes>
+                    </main>
+                </div>
             </BrowserRouter>
         </AuthProvider>
     );
