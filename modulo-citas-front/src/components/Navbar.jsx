@@ -29,12 +29,17 @@ export default function Navbar() {
 
                         {user && (
                             <>
-                                <Link to="/citas" className="text-gray-300 hover:bg-dark-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                    Mis Citas
-                                </Link>
-                                <Link to="/crear-cita" className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
-                                    + Nueva Cita
-                                </Link>
+                                {/* Menú solo para CLIENTE (rol = 3) */}
+                                {user.rol === 3 && (
+                                    <>
+                                        <Link to="/citas" className="text-gray-300 hover:bg-dark-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                                            Mis Citas
+                                        </Link>
+                                        <Link to="/crear-cita" className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                                            + Nueva Cita
+                                        </Link>
+                                    </>
+                                )}
                             </>
                         )}
 

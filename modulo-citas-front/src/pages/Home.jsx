@@ -1,9 +1,17 @@
-import { Link } from "react-router-dom";
-import { useContext } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useContext, useEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
 
 export default function Home() {
     const { user } = useContext(AuthContext);
+    const navigate = useNavigate();
+
+    // Redirigir admin a su panel automáticamente
+    useEffect(() => {
+        if (user && user.rol === 1) {
+            navigate("/admin");
+        }
+    }, [user, navigate]);
 
     return (
         <div className="min-h-[calc(100vh-4rem)]">

@@ -12,3 +12,10 @@ export const authRequired = (req, res, next) => {
         return res.status(401).json({ message: "Token inválido" });
     }
 };
+
+export const isAdmin = (req, res, next) => {
+    if (req.user.rol !== 1) {
+        return res.status(403).json({ message: "Acceso denegado. Solo administradores" });
+    }
+    next();
+};
