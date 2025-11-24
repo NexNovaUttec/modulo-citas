@@ -5,6 +5,11 @@ export const crearCita = async (req, res) => {
         const { vehiculo_id, servicio_id, fecha, hora, notas } = req.body;
         console.log('Creating appointment:', { vehiculo_id, servicio_id, fecha, hora, notas });
 
+        // Validar campos requeridos
+        if (!vehiculo_id || !servicio_id || !fecha || !hora) {
+            return res.status(400).json({ message: "Todos los campos son obligatorios" });
+        }
+
         // Verificar si ya existe cita en ese horario
         const existe = await pool.query(
             `SELECT * FROM citas 
